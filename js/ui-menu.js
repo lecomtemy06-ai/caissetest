@@ -11,8 +11,9 @@
  * Dans les deux cas, la page des suppléments est toujours proposée
  * ensuite.
  *
- * Les articles marqués "promotion" dans le catalogue affichent un petit
- * badge 🏷️ sur leur bouton — purement visuel.
+ * Les articles marqués "promotion" affichent un petit badge 🏷️ et les
+ * "favoris" une étoile ⭐ sur leur bouton — purement visuel (ils restent
+ * à leur place dans l'ordre alphabétique, voir tri.js).
  *
  * La catégorie "Divers" peut contenir un article spécial "Ristourne"
  * (repéré par `special: 'ristourne'`) : il ouvre une pop-up dédiée pour
@@ -23,6 +24,7 @@ import { ajouterArticle, supprimerArticle, getPanier, getTotal, onChangement } f
 import { getMode, onModeChange, tvaEffective } from './consommation.js';
 import { enregistrerAction, escapeHtml } from './ui-modal.js';
 import { ouvrirRistournePopup } from './ui-ristourne.js';
+import { trierEntrees } from './tri.js';
 
 const elMenu = () => document.getElementById('zone-menu');
 const elFooter = () => document.getElementById('zone-footer');
@@ -39,7 +41,7 @@ export function initUiMenu() {
 }
 
 function badge(obj) {
-  return obj.promo ? '🏷️ ' : '';
+  return (obj.favori ? '⭐ ' : '') + (obj.promo ? '🏷️ ' : '');
 }
 
 function prixHtml(prix) {
@@ -77,7 +79,7 @@ function afficherArticles(categorie) {
   const catalogue = getCatalogue();
 
   if (categorie === 'Plats') {
-    Object.entries(catalogue.categories.Plats.types).forEach(([nom, obj]) => {
+    trierEntrees(Object.entries(catalogue.categories.Plats.types), 'Plats').forEach(([nom, obj]) => {
       const btn = document.createElement('button');
       btn.className = 'btn-menu';
       btn.textContent = badge(obj) + nom;
@@ -85,7 +87,7 @@ function afficherArticles(categorie) {
       menu.appendChild(btn);
     });
   } else {
-    Object.entries(catalogue.categories[categorie]).forEach(([nom, obj]) => {
+    trierEntrees(Object.entries(catalogue.categories[categorie]), categorie).forEach(([nom, obj]) => {
       const btn = document.createElement('button');
       btn.className = 'btn-menu';
       if (obj.special === 'ristourne') {
@@ -110,7 +112,7 @@ function afficherViandes(typePlat) {
 
   if (type.prixFixes) {
     // Format à prix fixes : choix et prix propres à ce format
-    Object.entries(type.prixFixes).forEach(([nom, obj]) => {
+    trierEntrees(Object.entries(type.prixFixes), 'Plats').forEach(([nom, obj]) => {
       const tva = obj.tva !== undefined ? obj.tva : type.tva;
       const btn = document.createElement('button');
       btn.className = 'btn-menu';
@@ -120,7 +122,7 @@ function afficherViandes(typePlat) {
     });
   } else {
     // Format additif : prix du format + prix de la viande
-    Object.entries(catalogue.categories.Plats.viandes).forEach(([nom, obj]) => {
+    trierEntrees(Object.entries(catalogue.categories.Plats.viandes), 'Plats').forEach(([nom, obj]) => {
       const prix = arrondi(type.prix + obj.prix);
       const btn = document.createElement('button');
       btn.className = 'btn-menu';
@@ -140,6 +142,7 @@ function afficherOptions(typePlat, choix, base) {
   menu.style.gridTemplateColumns = 'repeat(2, 1fr)';
   const catalogue = getCatalogue();
   const selection = {};
+  const ordreAffichage = []; // ordre (alphabétique) des suppléments affichés
   let totalVar = base.prix;
 
   const label = document.createElement('div');
@@ -156,12 +159,13 @@ function afficherOptions(typePlat, choix, base) {
 
   // Certains suppléments ne s'appliquent qu'à certains formats
   // (champ `formats`, ex. "Frites + Sauces" pour Pain rond/Poche/Durum).
-  Object.entries(catalogue.supplements)
+  trierEntrees(Object.entries(catalogue.supplements), 'SUPPLEMENTS')
     .filter(([, obj]) => !obj.formats || obj.formats.includes(typePlat))
     .forEach(([nom, obj]) => {
       const btn = document.createElement('button');
       btn.className = 'btn-menu';
       btn.innerHTML = `${badge(obj)}${escapeHtml(nom)}<br>${prixHtml(obj.prix)}`;
+      ordreAffichage.push(nom);
       btn.addEventListener('click', () => {
         selection[nom] = !selection[nom];
         btn.style.outline = selection[nom] ? '3px solid var(--accent)' : '';
@@ -185,7 +189,8 @@ function afficherOptions(typePlat, choix, base) {
   btnValider.className = 'btn-menu vert';
   btnValider.textContent = '✅ Valider';
   btnValider.addEventListener('click', () => {
-    ajouterArticle(`${typePlat} ${choix}`, totalVar, base.tva);
+    const choisis = ordreAffichage.filter(n => selection[n]); // dans l'ordre d'affichage
+    ajouterArticle(`${typePlat} ${choix}`, totalVar, base.tva, choisis);
     afficherCategories();
   });
   footer.appendChild(btnValider);
@@ -212,8 +217,10 @@ function rafraichirPanier({ total, panier }) {
       const ligne = document.createElement('div');
       ligne.className = 'panier-ligne';
       const libelle = (item.quantite > 1 ? item.quantite + ' x ' : '') + item.nom;
+      const details = (item.supplements || [])
+        .map(s => `<div class="panier-sup">+ ${escapeHtml(s)}</div>`).join('');
       ligne.innerHTML = `
-        <span class="panier-nom">${escapeHtml(libelle)}</span>
+        <span class="panier-nom">${escapeHtml(libelle)}${details}</span>
         <span class="panier-tva">${tvaEffective(item.tva, mode)}%</span>
         <span class="panier-prix">${(item.prixUnitaire * item.quantite).toFixed(2)} €</span>
         <button class="panier-suppr" data-action="supprimerLigne" data-args="[${i}]">✕</button>`;

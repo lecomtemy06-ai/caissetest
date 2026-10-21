@@ -76,6 +76,11 @@
             "Tenders": {
               "prix": 9,
               "tva": 6
+            },
+            "Mulky": {
+              "prix": 8,
+              "tva": 6,
+              "promo": false
             }
           }
         },
@@ -188,6 +193,11 @@
         "Steak bœuf": {
           "prix": 4.5,
           "tva": 6
+        },
+        "Cervela": {
+          "prix": 4.2,
+          "tva": 6,
+          "promo": false
         }
       }
     },
@@ -211,8 +221,13 @@
         "tva": 6
       },
       "Friandise": {
-        "prix": 3,
+        "prix": 3.5,
         "tva": 6
+      },
+      "Kermesse": {
+        "prix": 3,
+        "tva": 6,
+        "promo": false
       }
     },
     "Boissons": {
@@ -256,6 +271,10 @@
         "prix": 3,
         "tva": 21
       },
+      "Leffe": {
+        "prix": 4.5,
+        "tva": 21
+      },
       "Vin": {
         "prix": 4.5,
         "tva": 21
@@ -290,6 +309,11 @@
         "prix": 0,
         "tva": 6,
         "special": "ristourne"
+      },
+      "Salade César": {
+        "prix": 9,
+        "tva": 6,
+        "promo": false
       }
     }
   },
@@ -311,19 +335,19 @@
       "tva": 6
     },
     "Crudités+": {
-      "prix": 0.8,
+      "prix": 0.6,
       "tva": 6
     },
     "Frites+": {
-      "prix": 0.8,
+      "prix": 0.9,
       "tva": 6
     },
     "Sauce+": {
-      "prix": 0.8,
+      "prix": 0.9,
       "tva": 6
     },
     "Frites + Sauces": {
-      "prix": 2.5,
+      "prix": 1.5,
       "tva": 6,
       "formats": [
         "Pain rond",

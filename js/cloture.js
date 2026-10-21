@@ -24,7 +24,7 @@ function centrer(txt, largeur) {
 export function calculerCloture(ventes, date) {
   if (!ventes.length) return null;
 
-  let totalLiquide = 0, totalBancontact = 0, totalEmporter = 0, totalSurPlace = 0;
+  let totalLiquide = 0, totalBancontact = 0, totalEmporter = 0, totalSurPlace = 0, totalLivraison = 0;
   const ventilationGlobale = {};
   const resumeTickets = [];
 
@@ -34,6 +34,7 @@ export function calculerCloture(ventes, date) {
 
     if (v.modeConsommation === 'EMPORTER') totalEmporter += v.totalTTC;
     else if (v.modeConsommation === 'SUR_PLACE') totalSurPlace += v.totalTTC;
+    else if (v.modeConsommation === 'LIVRAISON') totalLivraison += v.totalTTC;
 
     Object.entries(v.ventilation).forEach(([taux, val]) => {
       if (!ventilationGlobale[taux]) ventilationGlobale[taux] = { ht: 0, tva: 0, ttc: 0 };
@@ -49,6 +50,7 @@ export function calculerCloture(ventes, date) {
   totalBancontact = Math.round(totalBancontact * 100) / 100;
   totalEmporter = Math.round(totalEmporter * 100) / 100;
   totalSurPlace = Math.round(totalSurPlace * 100) / 100;
+  totalLivraison = Math.round(totalLivraison * 100) / 100;
   Object.keys(ventilationGlobale).forEach(t => {
     ventilationGlobale[t].ht = Math.round(ventilationGlobale[t].ht * 100) / 100;
     ventilationGlobale[t].tva = Math.round(ventilationGlobale[t].tva * 100) / 100;
@@ -60,9 +62,9 @@ export function calculerCloture(ventes, date) {
   const ticketMoyen = nbTickets ? totalJour / nbTickets : 0;
   const totalTVAJour = Math.round(Object.values(ventilationGlobale).reduce((s, v) => s + v.tva, 0) * 100) / 100;
 
-  const totalNonPrecise = Math.round((totalJour - totalEmporter - totalSurPlace) * 100) / 100;
+  const totalNonPrecise = Math.round((totalJour - totalEmporter - totalSurPlace - totalLivraison) * 100) / 100;
 
-  return { date, resumeTickets, ventilationGlobale, totalLiquide, totalBancontact, totalEmporter, totalSurPlace, totalNonPrecise, totalJour, nbTickets, ticketMoyen, totalTVAJour };
+  return { date, resumeTickets, ventilationGlobale, totalLiquide, totalBancontact, totalEmporter, totalSurPlace, totalLivraison, totalNonPrecise, totalJour, nbTickets, ticketMoyen, totalTVAJour };
 }
 
 export function formaterClotureTexte(c) {
@@ -88,6 +90,7 @@ export function formaterClotureTexte(c) {
   txt += sep2 + '\n';
   txt += 'TOTAL A EMPORTER'.padEnd(22) + (c.totalEmporter || 0).toFixed(2).padStart(9) + ' €\n';
   txt += 'TOTAL SUR PLACE'.padEnd(22) + (c.totalSurPlace || 0).toFixed(2).padStart(9) + ' €\n';
+  txt += 'TOTAL LIVRAISON'.padEnd(22) + (c.totalLivraison || 0).toFixed(2).padStart(9) + ' €\n';
   if (Math.abs(c.totalNonPrecise || 0) > 0.004) txt += 'MODE NON PRECISE'.padEnd(22) + c.totalNonPrecise.toFixed(2).padStart(9) + ' €\n';
   txt += sep2 + '\n';
   txt += 'NOMBRE DE TICKETS'.padEnd(22) + String(c.nbTickets).padStart(9) + '\n';

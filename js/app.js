@@ -7,6 +7,7 @@ import { initCatalogue } from './catalogue.js';
 import { initUiMenu } from './ui-menu.js';
 import { initUiPaiement } from './ui-paiement.js';
 import { initUiHistorique } from './ui-historique.js';
+import { initUiCaisse } from './ui-caisse.js';
 import { initUiExport } from './ui-export.js';
 import { initUiGestion } from './ui-gestion.js';
 import { initUiParametres } from './ui-parametres.js';
@@ -72,6 +73,7 @@ async function demarrer() {
   initUiMenu();
   initUiPaiement();
   initUiHistorique();
+  initUiCaisse();
   initUiExport();
   initUiGestion();
   initUiParametres();

@@ -27,9 +27,26 @@ export function creerPaveNumerique(surTouche) {
  *  - un appui de plus : retour aux minuscules.
  * `options.majusculeInitiale` (défaut : vrai) : première lettre en
  * majuscule (désactivé pour modifier un nom existant).
+ * `options.entree` (défaut : faux) : ajoute une touche ENTRÉE verte, bien
+ * visible, qui envoie 'ENTER' (utilisée pour écrire une ligne de saisie).
  * La fonction surTouche reçoit le caractère exact ('a', 'A', '7'), ou
  * 'SPC' / 'BACK'.
  */
+// Pavé numérique avec signes de calcul (+ - * /) et virgule/point, pour
+// saisir des montants ou de petites opérations (ex. 10*50).
+export function creerPaveCalcul(surTouche) {
+  const conteneur = document.createElement('div');
+  conteneur.className = 'pave pave-calcul';
+  ['7', '8', '9', '/', '4', '5', '6', '*', '1', '2', '3', '-', '0', '.', ',', '+'].forEach(b => {
+    const btn = document.createElement('button');
+    if ('/*-+'.includes(b)) btn.classList.add('op');
+    btn.textContent = b;
+    btn.addEventListener('click', () => surTouche(b));
+    conteneur.appendChild(btn);
+  });
+  return conteneur;
+}
+
 export function creerClavierAzerty(surTouche, options = {}) {
   const conteneur = document.createElement('div');
   conteneur.className = 'clavier';
@@ -97,7 +114,15 @@ export function creerClavierAzerty(surTouche, options = {}) {
   retour.style.background = 'var(--red)';
   retour.textContent = '⌫';
   retour.addEventListener('click', () => surTouche('BACK'));
-  derniere.append(espace, retour);
+  if (options.entree) {
+    const entree = document.createElement('button');
+    entree.className = 'btn-lettre special entree';
+    entree.textContent = '↵ ENTRÉE';
+    entree.addEventListener('click', () => surTouche('ENTER'));
+    derniere.append(espace, entree, retour);
+  } else {
+    derniere.append(espace, retour);
+  }
   conteneur.appendChild(derniere);
 
   rafraichir();

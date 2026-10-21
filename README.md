@@ -70,7 +70,11 @@ js/
   impression.js                      Point d'entrée unique de l'impression papier (80 mm)
   export.js                         Export CSV/JSON, restauration, dossier local
   github-sync.js                     Synchronisation temps réel vers le dépôt privé
-  clavier.js                          Pavé numérique et clavier AZERTY (chiffres, ⇧ Caps Lock)
+  clavier.js                          Pavé numérique, pavé de calcul et clavier AZERTY (chiffres, ⇧, ENTRÉE)
+  tri.js                               Ordre alphabétique d'affichage des articles
+  format.js                            Format des nombres (virgule décimale)
+  caisse.js                            Clôture de caisse : comptage, écart, enregistrement
+  ui-caisse.js                         Écrans du comptage et de son historique
   ui-modal.js                          Moteur générique de fenêtres modales
   ui-menu.js                            Navigation du menu de vente + panier
   ui-ristourne.js                        Pop-up de saisie d'une ristourne
@@ -209,6 +213,22 @@ doivent être validés avec ton comptable avant la mise en service.
   au panier, « ⌫ » corrige la dernière frappe, « C » vide la saisie.
 - **Clavier** de saisie : chiffres, majuscules/minuscules ; ⇧ une fois =
   prochaine lettre en majuscule, deux fois = Caps Lock.
+
+- **Suppléments détaillés** : chaque supplément choisi est écrit sous son plat, un par ligne, en plus petit dans le panier et en retrait sur le ticket et dans l'enregistrement (colonne « Supplements » des CSV). Leur prix reste inclus dans le prix de la ligne.
+- **Livraison** : troisième mode (avec « À emporter » et « Sur place »), à
+  choisir pour chaque ticket. Mêmes taux de TVA qu'à emporter. Visible sur
+  le ticket, dans l'historique, les CSV et la clôture (TOTAL LIVRAISON).
+- **Clôture de caisse** (comptage du tiroir) : bouton « caisse » à gauche du
+  titre dans la fenêtre de Clôture. On écrit des lignes (`530 liquide`,
+  `-30 frites`, `10*50 billets`) avec ENTRÉE ; l'écart avec le liquide attendu
+  d'après les ventes est calculé. Valider enregistre `caisses/caisse_AAAA-MM-JJ_HHMMSS.json`
+  dans le dépôt privé (un fichier par comptage). Historique : menu du logo →
+  « Clôtures de caisse ».
+- **Menu du logo (code)** : Ajouter article, Clôtures, Clôtures de caisse,
+  Export & sauvegarde, Paramètres. Il n'y a plus de bouton Export dans la barre.
+- **Favoris** ⭐ : comme la promotion, discret (étoile à côté du nom), sans
+  changer la place de l'article. **Tri** : les articles sont affichés par ordre
+  alphabétique (Frites : Petite puis Grande ; Ristourne en dernier).
 
 ## Plats : deux logiques de prix
 

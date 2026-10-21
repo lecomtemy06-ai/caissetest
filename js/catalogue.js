@@ -137,6 +137,12 @@ export function basculerPromo(cat, nom) {
   persisterEtSynchroniser({ op: 'promo', cat, nom, valeur: !obj.promo });
 }
 
+export function basculerFavori(cat, nom) {
+  const obj = getArticleRef(cat, nom);
+  if (!obj) return;
+  persisterEtSynchroniser({ op: 'favori', cat, nom, valeur: !obj.favori });
+}
+
 export function renommerArticle(cat, nomActuel, nouveauNom) {
   if (!getArticleRef(cat, nomActuel) || nouveauNom === nomActuel) return;
   persisterEtSynchroniser({ op: 'renommer', cat, nomActuel, nouveauNom });
@@ -146,6 +152,6 @@ export function supprimerArticle(cat, nom) {
   persisterEtSynchroniser({ op: 'supprimer', cat, nom });
 }
 
-export function ajouterArticleCatalogue(cat, nom, prix, tva, promo = false) {
-  persisterEtSynchroniser({ op: 'ajouter', cat, nom, prix, tva, promo });
+export function ajouterArticleCatalogue(cat, nom, prix, tva, promo = false, favori = false) {
+  persisterEtSynchroniser({ op: 'ajouter', cat, nom, prix, tva, promo, favori });
 }

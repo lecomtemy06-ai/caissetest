@@ -102,6 +102,8 @@ export function formaterTicketTexte(t, options = {}) {
   t.lignes.forEach(l => {
     const tot = (l.prixUnitaire * l.quantite).toFixed(2);
     L.push(ligneColonnes(l.quantite, l.nom, l.prixUnitaire.toFixed(2), l.tva + '%', tot));
+    // un supplément par ligne, en retrait (leur prix est inclus dans la ligne)
+    (l.supplements || []).forEach(s => L.push(('    + ' + s).slice(0, LARGEUR_TICKET)));
   });
   L.push(sep2);
   Object.keys(t.ventilation).sort((a, b) => a - b).forEach(taux => {

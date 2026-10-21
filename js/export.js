@@ -9,6 +9,7 @@ import { Stockage } from './stockage.js';
 import { toutesLesVentes, ventesDuJour, dateComptable } from './ventes.js';
 import { getCatalogue } from './catalogue.js';
 import { listerClotures, rassemblerClotures } from './cloture.js';
+import { nombreFr } from './format.js';
 
 export function telechargerFichier(nom, contenu, mime = 'text/plain') {
   const blob = new Blob([contenu], { type: mime + ';charset=utf-8' });
@@ -22,22 +23,18 @@ export function telechargerFichier(nom, contenu, mime = 'text/plain') {
   setTimeout(() => URL.revokeObjectURL(url), 3000);
 }
 
-// Convention comptable belge pour tous les CSV : virgule décimale,
-// séparateur ";" (s'ouvre directement dans Excel), BOM UTF-8 (accents).
-const nombreFr = (n) => (Math.round((Number(n) || 0) * 100) / 100).toFixed(2).replace('.', ',');
-
 function csvEchappe(v) {
   const s = String(v);
   return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 
 function construireCsvVentes(ventes) {
-  const lignes = ['NumTicket;DateComptable;DateHeure;Appareil;Consommation;Article;Quantite;PrixUnitaireTTC;TauxTVA;TotalLigneTTC;ModePaiement;TotalTicketTTC'];
+  const lignes = ['NumTicket;DateComptable;DateHeure;Appareil;Consommation;Article;Supplements;Quantite;PrixUnitaireTTC;TauxTVA;TotalLigneTTC;ModePaiement;TotalTicketTTC'];
   ventes.forEach(v => {
     v.lignes.forEach(l => {
       lignes.push([
         v.numero, v.dateComptable, v.dateAffichee + ' ' + v.heureAffichee, v.appareil || '', v.modeConsommation || '',
-        csvEchappe(l.nom), l.quantite, nombreFr(l.prixUnitaire), l.tva,
+        csvEchappe(l.nom), csvEchappe((l.supplements || []).join(' + ')), l.quantite, nombreFr(l.prixUnitaire), l.tva,
         nombreFr(l.prixUnitaire * l.quantite), v.modePaiement, nombreFr(v.totalTTC)
       ].join(';'));
     });
@@ -59,13 +56,13 @@ export function exporterVentesCSV(toutes) {
 // les accents.
 export function construireCsvClotures(clotures) {
   const taux = ['6', '12', '21'];
-  const entete = ['Date', 'NbTickets', 'TicketMoyenTTC', 'TotalLiquideTTC', 'TotalBancontactTTC', 'TotalEmporterTTC', 'TotalSurPlaceTTC', 'ModeNonPreciseTTC'];
+  const entete = ['Date', 'NbTickets', 'TicketMoyenTTC', 'TotalLiquideTTC', 'TotalBancontactTTC', 'TotalEmporterTTC', 'TotalSurPlaceTTC', 'TotalLivraisonTTC', 'ModeNonPreciseTTC'];
   taux.forEach(t => entete.push(`BaseHT_${t}%`, `TVA_${t}%`, `TTC_${t}%`));
   entete.push('TotalTVA', 'TotalJourneeTTC');
   const lignes = [entete.join(';')];
   clotures.forEach(c => {
     const l = [c.date, c.nbTickets, nombreFr(c.ticketMoyen), nombreFr(c.totalLiquide), nombreFr(c.totalBancontact),
-      nombreFr(c.totalEmporter), nombreFr(c.totalSurPlace), nombreFr(c.totalNonPrecise)];
+      nombreFr(c.totalEmporter), nombreFr(c.totalSurPlace), nombreFr(c.totalLivraison), nombreFr(c.totalNonPrecise)];
     taux.forEach(t => {
       const v = (c.ventilationGlobale || {})[t] || { ht: 0, tva: 0, ttc: 0 };
       l.push(nombreFr(v.ht), nombreFr(v.tva), nombreFr(v.ttc));
@@ -90,6 +87,7 @@ export function exporterSauvegardeJSON() {
     catalogue: getCatalogue(),
     ventes: toutesLesVentes(),
     clotures: listerClotures(),
+    caisses: Stockage.chargerCaisses(),
     identifiantCaisse: Stockage.chargerIdentifiantCaisse(),
     compteurSecours: Stockage.chargerCompteurSecours()
   };
@@ -100,6 +98,7 @@ export function restaurerSauvegarde(data) {
   if (data.catalogue) Stockage.sauvegarderCatalogue(data.catalogue);
   if (data.ventes) Stockage.sauvegarderVentes(data.ventes);
   if (data.clotures) Stockage.sauvegarderClotures(data.clotures);
+  if (data.caisses) Stockage.sauvegarderCaisses(data.caisses);
   if (data.identifiantCaisse) Stockage.definirIdentifiantCaisse(data.identifiantCaisse);
   if (data.compteurSecours) Stockage.sauvegarderCompteurSecours(data.compteurSecours);
 }

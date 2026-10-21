@@ -41,6 +41,9 @@ export const Stockage = {
   chargerVentes: () => lire(CLES_STOCKAGE.VENTES, []),
   sauvegarderVentes: (v) => ecrire(CLES_STOCKAGE.VENTES, v),
 
+  chargerCaisses: () => lire(CLES_STOCKAGE.CAISSES, {}),
+  sauvegarderCaisses: (c) => ecrire(CLES_STOCKAGE.CAISSES, c),
+
   chargerClotures: () => lire(CLES_STOCKAGE.CLOTURES, {}),
   sauvegarderClotures: (c) => ecrire(CLES_STOCKAGE.CLOTURES, c),
 

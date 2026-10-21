@@ -103,6 +103,9 @@ export function appliquerPatchCatalogue(catalogue, patch) {
     case 'promo':
       if (conteneur[patch.nom]) conteneur[patch.nom].promo = !!patch.valeur;
       break;
+    case 'favori':
+      if (conteneur[patch.nom]) conteneur[patch.nom].favori = !!patch.valeur;
+      break;
     case 'renommer':
       if (conteneur[patch.nomActuel] && patch.nouveauNom !== patch.nomActuel) {
         conteneur[patch.nouveauNom] = conteneur[patch.nomActuel];
@@ -113,7 +116,7 @@ export function appliquerPatchCatalogue(catalogue, patch) {
       delete conteneur[patch.nom];
       break;
     case 'ajouter': {
-      const article = { prix: patch.prix, tva: patch.tva, promo: !!patch.promo };
+      const article = { prix: patch.prix, tva: patch.tva, promo: !!patch.promo, favori: !!patch.favori };
       if (patch.cat === 'Plats-types-fixes') article.prixFixes = {};
       conteneur[patch.nom] = article;
       break;
@@ -129,6 +132,7 @@ export function decrirePatch(patch) {
     case 'prix': return `Prix "${patch.nom}" -> ${patch.valeur.toFixed(2)} €`;
     case 'tva': return `TVA "${patch.nom}" -> ${patch.valeur}%`;
     case 'promo': return `Promotion "${patch.nom}" -> ${patch.valeur ? 'activée' : 'désactivée'}`;
+    case 'favori': return `Favori "${patch.nom}" -> ${patch.valeur ? 'activé' : 'désactivé'}`;
     case 'renommer': return `Renommage "${patch.nomActuel}" -> "${patch.nouveauNom}"`;
     case 'supprimer': return `Suppression "${patch.nom}"`;
     case 'ajouter': return `Ajout "${patch.nom}"`;

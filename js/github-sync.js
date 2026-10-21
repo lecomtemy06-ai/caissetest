@@ -30,13 +30,20 @@ const MAX_ESSAIS_CONFLIT = 5;
 // (comptabilité, analyse, import dans un autre outil) :
 //   ventes/tickets_AAAA-MM-JJ.json     tous les tickets d'une journée comptable
 //   clotures/cloture_AAAA-MM-JJ.json   la clôture d'une journée comptable
+//   caisses/caisse_AAAA-MM-JJ_HHMMSS.json  un comptage de caisse (un fichier par comptage, jamais écrasé)
 // Anciens noms (ventes/AAAA-MM-JJ.json, clotures/AAAA-MM-JJ.json) : encore
 // LUS si le nouveau fichier n'existe pas, jamais écrits ni supprimés.
 export const cheminTickets = (date) => `ventes/tickets_${date}.json`;
 export const cheminCloture = (date) => `clotures/cloture_${date}.json`;
 const cheminTicketsAncien = (date) => `ventes/${date}.json`;
 const cheminClotureAncien = (date) => `clotures/${date}.json`;
-const PREFIXES_FICHIERS = { ventes: 'tickets_', clotures: 'cloture_' };
+export const cheminCaisse = (id) => `caisses/caisse_${id}.json`;
+const JJ = /^\d{4}-\d{2}-\d{2}$/;
+const DOSSIERS = {
+  ventes: { prefixe: 'tickets_', motif: JJ },
+  clotures: { prefixe: 'cloture_', motif: JJ },
+  caisses: { prefixe: 'caisse_', motif: /^\d{4}-\d{2}-\d{2}_\d{6}$/ }
+};
 
 // Lit le fichier au nouveau nom, à défaut l'ancien.
 async function lireAvecRepli(config, nouveau, ancien) {
@@ -137,6 +144,7 @@ export async function traiterFile() {
 async function traiterUnElement(config, item) {
   if (item.type === 'vente') return synchroniserVente(config, item);
   if (item.type === 'cloture') return synchroniserCloture(config, item);
+  if (item.type === 'caisse') return synchroniserCaisse(config, item);
   if (item.type === 'catalogue') return synchroniserCatalogue(config, item);
 }
 
@@ -188,6 +196,25 @@ async function synchroniserCloture(config, item) {
     }
   }
   throw new Error('Trop de tentatives de synchronisation (clôture)');
+}
+
+// Un fichier par comptage de caisse (caisses/caisse_AAAA-MM-JJ_HHMMSS.json).
+// L'identifiant contient la seconde : deux comptages ne se remplacent
+// jamais. Réémettre le même (reprise après coupure) réécrit le même contenu.
+async function synchroniserCaisse(config, item) {
+  const chemin = cheminCaisse(item.id);
+  for (let essai = 0; essai < MAX_ESSAIS_CONFLIT; essai++) {
+    const distant = await githubGetFile(config, chemin);
+    try {
+      await githubPutFile(config, chemin, JSON.stringify(item.caisse, null, 2), distant.sha,
+        `Clôture de caisse - ${item.id}`);
+      return;
+    } catch (e) {
+      if (e.status === 409 || e.status === 422) continue;
+      throw e;
+    }
+  }
+  throw new Error('Trop de tentatives de synchronisation (caisse)');
 }
 
 // Fichier unique catalogue.json. Contrairement aux ventes/clôtures, on
@@ -321,6 +348,19 @@ export async function obtenirVentesDistantes(date) {
   }
 }
 
+export async function obtenirCaisseDistante(id) {
+  const config = getConfigGithub();
+  if (!estConfigure(config)) return null;
+  try {
+    const distant = await githubGetFile(config, cheminCaisse(id));
+    if (!distant.existe) return null;
+    return JSON.parse(distant.contenu);
+  } catch (e) {
+    console.warn('Comptage de caisse distant inaccessible pour ' + id, e);
+    return null;
+  }
+}
+
 export async function obtenirClotureDistante(date) {
   const config = getConfigGithub();
   if (!estConfigure(config)) return null;
@@ -334,9 +374,10 @@ export async function obtenirClotureDistante(date) {
   }
 }
 
-// Liste les fichiers .json d'un dossier du dépôt privé ("ventes" ou
-// "clotures") et renvoie les DATES (AAAA-MM-JJ) qu'ils couvrent, sans
-// doublon, qu'ils portent le nouveau nom (tickets_… / cloture_…) ou l'ancien.
+// Liste les fichiers .json d'un dossier du dépôt privé ("ventes",
+// "clotures" ou "caisses") et renvoie les identifiants qu'ils couvrent :
+// des DATES (AAAA-MM-JJ) pour ventes/clôtures, AAAA-MM-JJ_HHMMSS pour les
+// caisses. Sans doublon, qu'ils portent le nouveau nom ou l'ancien.
 // Renvoie null si non configuré/hors-ligne (pour distinguer d'une
 // liste simplement vide).
 export async function listerFichiersDistants(dossier) {
@@ -350,8 +391,8 @@ export async function listerFichiersDistants(dossier) {
     const data = await reponse.json();
     return data
       .filter(f => f.type === 'file' && f.name.endsWith('.json'))
-      .map(f => f.name.replace(/\.json$/, '').replace(PREFIXES_FICHIERS[dossier] || '', ''))
-      .filter((d, i, tous) => /^\d{4}-\d{2}-\d{2}$/.test(d) && tous.indexOf(d) === i);
+      .map(f => f.name.replace(/\.json$/, '').replace(DOSSIERS[dossier].prefixe, ''))
+      .filter((d, i, tous) => DOSSIERS[dossier].motif.test(d) && tous.indexOf(d) === i);
   } catch (e) {
     console.warn('Listing distant impossible pour ' + dossier, e);
     return null;

@@ -16,7 +16,7 @@ import { formaterTicketTexte } from './ticket.js';
 let importEnAttente = null;
 
 export function initUiExport() {
-  document.getElementById('btn-export').addEventListener('click', ouvrirExport);
+  enregistrerAction('ouvrirExport', ouvrirExport);
   document.getElementById('import-json').addEventListener('change', gererImport);
 
   enregistrerAction('exportCsvJour', () => { if (!exporterVentesCSV(false)) alert('Aucune vente à exporter.'); });
@@ -49,7 +49,7 @@ export function ouvrirExport() {
       <button class="btn-modal gris" data-action="exportJson">🗄 Sauvegarde complète (JSON)</button>
       <label class="btn-modal orange" style="text-align:center;display:block;cursor:pointer" for="import-json">📥 Restaurer une sauvegarde JSON</label>
     </div>
-    <button class="btn-modal rouge full" style="margin-top:12px" data-action="fermerModal">Fermer</button>`);
+    <button class="btn-modal rouge full" style="margin-top:12px" data-action="ouvrirGestionPrix">⬅ Retour</button>`);
 }
 
 async function exporterToutesLesClotures() {

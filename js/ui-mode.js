@@ -1,7 +1,7 @@
 /**
- * ui-mode.js — Interface du choix "À emporter" / "Sur place".
+ * ui-mode.js — Interface du choix "À emporter" / "Sur place" / "Livraison".
  *
- * Deux boutons exclusifs dans la barre du haut. Aucun n'est actif au
+ * Trois boutons exclusifs dans la barre du haut. Aucun n'est actif au
  * départ ni après chaque ticket : si l'utilisateur tente de payer sans
  * avoir choisi, une fenêtre lui demande de choisir (voir demanderMode),
  * ce qui garantit un choix conscient à chaque ticket.
@@ -12,13 +12,17 @@ import { modal, fermerModal, enregistrerAction } from './ui-modal.js';
 export function initUiMode() {
   const btnEmporter = document.getElementById('btn-emporter');
   const btnSurPlace = document.getElementById('btn-surplace');
+  const btnLivraison = document.getElementById('btn-livraison');
 
   btnEmporter.addEventListener('click', () => definirMode(MODES.EMPORTER));
   btnSurPlace.addEventListener('click', () => definirMode(MODES.SUR_PLACE));
+  btnLivraison.addEventListener('click', () => definirMode(MODES.LIVRAISON));
 
   function rafraichir(mode) {
     btnEmporter.classList.toggle('actif', mode === MODES.EMPORTER);
     btnSurPlace.classList.toggle('actif', mode === MODES.SUR_PLACE);
+    btnLivraison.classList.toggle('actif', mode === MODES.LIVRAISON);
+    btnLivraison.setAttribute('aria-pressed', String(mode === MODES.LIVRAISON));
     btnEmporter.setAttribute('aria-pressed', String(mode === MODES.EMPORTER));
     btnSurPlace.setAttribute('aria-pressed', String(mode === MODES.SUR_PLACE));
   }
@@ -42,11 +46,12 @@ let suiteApresChoix = null;
 // `suite` une fois le choix fait. À appeler quand le mode est null.
 export function demanderMode(suite) {
   suiteApresChoix = suite;
-  modal(`<h2>Sur place ou à emporter ?</h2>
+  modal(`<h2>Sur place, à emporter ou livraison ?</h2>
     <p class="confirm-txt">Le taux de TVA du ticket dépend de ce choix.</p>
     <div class="modal-actions">
       <button class="btn-modal vert" style="padding:22px 10px;font-size:17px" data-action="choisirModeEtContinuer" data-args='["EMPORTER"]'>À emporter</button>
       <button class="btn-modal bleu" style="padding:22px 10px;font-size:17px" data-action="choisirModeEtContinuer" data-args='["SUR_PLACE"]'>Sur place</button>
+      <button class="btn-modal orange full" style="padding:22px 10px;font-size:17px" data-action="choisirModeEtContinuer" data-args='["LIVRAISON"]'>Livraison</button>
       <button class="btn-modal rouge full" data-action="fermerModal">Annuler</button>
     </div>`);
 }

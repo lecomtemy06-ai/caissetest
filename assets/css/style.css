@@ -164,3 +164,31 @@ html, body { height: 100%; background: var(--bg); color: var(--fg); font-family:
   body > *:not(#zone-impression) { display: none !important; }
   #zone-impression { display: block !important; margin: 0; color: #000; background: #fff; font-family: 'Courier New', monospace; font-size: 8pt; line-height: 1.25; white-space: pre; }
 }
+
+/* ===== Fenêtre de clôture : en-tête avec bouton "caisse" ===== */
+.cloture-entete { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cloture-entete h2 { margin: 0; flex: 1; text-align: center; }
+.cloture-entete-vide { width: 44px; flex-shrink: 0; }
+.btn-icone { width: 44px; height: 44px; flex-shrink: 0; background: #37474F; color: #FFD600; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.btn-icone:active { background: #546E7A; }
+
+/* ===== Clôture de caisse (comptage) ===== */
+.caisse-saisie { text-align: left; font-family: 'Courier New', monospace; font-size: 20px; min-height: 44px; margin-bottom: 4px; }
+.caisse-lignes { min-height: 70px; max-height: 20vh; margin-bottom: 6px; font-size: 13px; }
+.caisse-totaux { display: grid; gap: 3px; margin-bottom: 8px; }
+.caisse-totaux div { display: flex; justify-content: space-between; background: #2a2a2a; padding: 5px 10px; border-radius: 6px; font-size: 13px; }
+.caisse-totaux strong { font-family: 'Courier New', monospace; }
+.caisse-totaux .ecart-ok { background: #1B5E20; }
+.caisse-totaux .ecart-ko { background: #7f1d1d; }
+.caisse-clavier { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
+.caisse-col-clavier { flex: 2; min-width: 0; }
+.caisse-col-pave { flex: 1; min-width: 0; display: grid; gap: 6px; }
+.pave.pave-calcul { grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 0; }
+.pave.pave-calcul button { padding: 12px 0; font-size: 18px; }
+.pave.pave-calcul button.op { background: #37474F; }
+.caisse-col-pave .btn-modal { padding: 10px 6px; font-size: 13px; }
+.caisse-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.btn-lettre.entree { background: var(--green); font-size: 16px; flex: 2.4 1 0; box-shadow: 0 0 0 2px #A5D6A7; }
+
+/* ===== Suppléments sous la ligne d'un article (panier) ===== */
+.panier-sup { font-size: 10px; color: #B0BEC5; padding-left: 14px; line-height: 1.3; font-weight: normal; }

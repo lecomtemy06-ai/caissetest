@@ -1,10 +1,11 @@
 /**
  * consommation.js — Mode de consommation du ticket en cours :
- * "À emporter" ou "Sur place". Logique pure, sans DOM.
+ * "À emporter", "Sur place" ou "Livraison". Logique pure, sans DOM.
  *
  * Les taux de TVA saisis dans le catalogue sont les taux "à emporter".
  * Sur place, un produit à 6 % est facturé à 12 % ; les produits à 12 %
- * et à 21 % ne changent pas. Les prix TTC ne changent jamais : seule la
+ * et à 21 % ne changent pas. La livraison suit les mêmes règles que
+ * "à emporter" (aucune conversion de taux). Les prix TTC ne changent jamais : seule la
  * ventilation HT / TVA du ticket est modifiée.
  *
  * Le mode n'est PAS mémorisé d'un ticket à l'autre : il repasse à "non
@@ -12,7 +13,7 @@
  * conscient à chaque ticket (oublier "Sur place" sous-déclarerait la TVA).
  */
 
-export const MODES = { EMPORTER: 'EMPORTER', SUR_PLACE: 'SUR_PLACE' };
+export const MODES = { EMPORTER: 'EMPORTER', SUR_PLACE: 'SUR_PLACE', LIVRAISON: 'LIVRAISON' };
 
 let mode = null; // null = pas encore choisi pour ce ticket
 const ecouteurs = [];
@@ -42,5 +43,6 @@ export function tvaEffective(tvaBase, modeTicket) {
 export function libelleMode(modeTicket) {
   if (modeTicket === MODES.SUR_PLACE) return 'SUR PLACE';
   if (modeTicket === MODES.EMPORTER) return 'À EMPORTER';
+  if (modeTicket === MODES.LIVRAISON) return 'LIVRAISON';
   return 'NON PRÉCISÉ';
 }

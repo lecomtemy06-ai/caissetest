@@ -21,6 +21,7 @@ export const CLES_STOCKAGE = {
   VENTES: "ventes_v22",
   COMPTEUR_SECOURS: "compteur_secours_v22",
   CLOTURES: "clotures_v22",
+  CAISSES: "caisses_v22", // comptages de fin de journée ("Clôture de caisse")
   FILE_SYNC: "file_sync_v22",
   GITHUB_CONFIG: "github_config_v22", // ancien format (migration automatique, voir stockage.js)
   TOKEN_GITHUB: "token_github_v22",

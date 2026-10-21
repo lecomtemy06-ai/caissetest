@@ -5,13 +5,13 @@
  */
 import { demanderCode } from './garde-code.js';
 import {
-  getCatalogue, modifierPrix, cyclerTva, basculerPromo, renommerArticle,
+  getCatalogue, modifierPrix, cyclerTva, basculerPromo, basculerFavori, renommerArticle,
   supprimerArticle, ajouterArticleCatalogue
 } from './catalogue.js';
 import { modal, fermerModal, escapeHtml, enregistrerAction, attrArgs } from './ui-modal.js';
 import { creerPaveNumerique, creerClavierAzerty } from './clavier.js';
 import { PREFIXE_PRIX_FIXES } from './catalogue-patch.js';
-import { ouvrirListeClotures } from './ui-historique.js';
+import { trierEntrees } from './tri.js';
 import { ouvrirParametres } from './ui-parametres.js';
 
 export function initUiGestion() {
@@ -21,6 +21,7 @@ export function initUiGestion() {
   enregistrerAction('ouvrirModifPrix', ouvrirModifPrix);
   enregistrerAction('cyclerTvaUi', cyclerTvaUi);
   enregistrerAction('basculerPromoUi', basculerPromoUi);
+  enregistrerAction('basculerFavoriUi', basculerFavoriUi);
   enregistrerAction('ouvrirRenommer', ouvrirRenommer);
   enregistrerAction('demanderSuppressionArticle', demanderSuppressionArticle);
   enregistrerAction('confirmerSuppressionArticle', confirmerSuppressionArticle);
@@ -37,6 +38,8 @@ function construireEcranGestion() {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
       <button class="btn-modal vert" data-action="popupAjoutArticle">➕ Ajouter article</button>
       <button class="btn-modal gris" data-action="ouvrirListeClotures">📜 Clôtures</button>
+      <button class="btn-modal gris" data-action="ouvrirListeCaisses">🧮 Clôtures de caisse</button>
+      <button class="btn-modal gris" data-action="ouvrirExport">💾 Export &amp; sauvegarde</button>
     </div>
     <button class="btn-modal bleu full" style="margin-bottom:10px" data-action="ouvrirParametres">⚙️ Paramètres (synchronisation GitHub)</button>
     <p class="confirm-txt" style="font-size:11.5px;margin:4px 0 10px">Touchez le prix pour le modifier, ou le taux de TVA pour le faire changer (6% → 12% → 21%).</p>
@@ -46,22 +49,22 @@ function construireEcranGestion() {
     h += `<div class="section-titre">${escapeHtml(cat)}</div>`;
     if (cat === 'Plats') {
       h += `<div style="color:#aaa;font-size:12px;padding:4px 0">-- Types --</div>`;
-      for (const [nom, obj] of Object.entries(contenu.types)) {
+      for (const [nom, obj] of trierEntrees(Object.entries(contenu.types), 'Plats')) {
         h += ligneArticle('Plats-types', nom, obj);
         if (obj.prixFixes) {
-          for (const [nomC, objC] of Object.entries(obj.prixFixes)) {
+          for (const [nomC, objC] of trierEntrees(Object.entries(obj.prixFixes), 'Plats')) {
             h += ligneArticle(PREFIXE_PRIX_FIXES + nom, nomC, objC, true);
           }
         }
       }
       h += `<div style="color:#aaa;font-size:12px;padding:4px 0">-- Viandes --</div>`;
-      for (const [nom, obj] of Object.entries(contenu.viandes)) h += ligneArticle('Plats-viandes', nom, obj);
+      for (const [nom, obj] of trierEntrees(Object.entries(contenu.viandes), 'Plats')) h += ligneArticle('Plats-viandes', nom, obj);
     } else {
-      for (const [nom, obj] of Object.entries(contenu)) h += ligneArticle(cat, nom, obj);
+      for (const [nom, obj] of trierEntrees(Object.entries(contenu), cat)) h += ligneArticle(cat, nom, obj);
     }
   }
   h += `<div class="section-titre">SUPPLÉMENTS</div>`;
-  for (const [nom, obj] of Object.entries(catalogue.supplements)) h += ligneArticle('SUPPLEMENTS', nom, obj);
+  for (const [nom, obj] of trierEntrees(Object.entries(catalogue.supplements), 'SUPPLEMENTS')) h += ligneArticle('SUPPLEMENTS', nom, obj);
 
   h += `</div><button class="btn-modal rouge full" style="margin-top:10px" data-action="fermerModal">✕ Fermer</button>`;
   return h;
@@ -72,26 +75,28 @@ function ligneArticle(cat, nom, obj, sousLigne = false) {
     // Format à prix fixes : son prix et son taux sont portés par chaque
     // choix (lignes en dessous), pas par le format lui-même.
     return `<div class="article-ligne">
-      <span class="article-nom">${obj.promo ? '🏷️ ' : ''}${escapeHtml(nom)}</span>
+      <span class="article-nom">${obj.favori ? '⭐ ' : ''}${obj.promo ? '🏷️ ' : ''}${escapeHtml(nom)}</span>
       <span style="color:#888;font-size:11px;flex:1">Prix fixes par choix (ci-dessous)</span>
       <button class="btn-tva" style="${obj.promo ? 'background:#F57F17;color:white;border-color:#F57F17' : ''}" data-action="basculerPromoUi" data-args="${attrArgs([cat, nom])}" title="Marquer/démarquer comme promotion">🏷️</button>
+      <button class="btn-tva" style="${obj.favori ? 'background:#F9A825;color:#000;border-color:#F9A825' : ''}" data-action="basculerFavoriUi" data-args="${attrArgs([cat, nom])}" title="Marquer/démarquer comme favori">⭐</button>
       <button class="btn-edit" data-action="ouvrirRenommer" data-args="${attrArgs([cat, nom])}">✏️</button>
       <button class="btn-del" data-action="demanderSuppressionArticle" data-args="${attrArgs([cat, nom])}">🗑</button>
     </div>`;
   }
   if (obj.special === 'ristourne') {
     return `<div class="article-ligne">
-      <span class="article-nom">${obj.promo ? '🏷️ ' : ''}${escapeHtml(nom)}</span>
+      <span class="article-nom">${obj.favori ? '⭐ ' : ''}${obj.promo ? '🏷️ ' : ''}${escapeHtml(nom)}</span>
       <span style="color:#888;font-size:11px;flex:1">Article spécial — montant et TVA saisis à chaque vente</span>
       <button class="btn-edit" data-action="ouvrirRenommer" data-args="${attrArgs([cat, nom])}">✏️</button>
       <button class="btn-del" data-action="demanderSuppressionArticle" data-args="${attrArgs([cat, nom])}">🗑</button>
     </div>`;
   }
   return `<div class="article-ligne" ${sousLigne ? 'style="padding-left:22px"' : ''}>
-    <span class="article-nom">${sousLigne ? '↳ ' : ''}${obj.promo ? '🏷️ ' : ''}${escapeHtml(nom)}</span>
+    <span class="article-nom">${sousLigne ? '↳ ' : ''}${obj.favori ? '⭐ ' : ''}${obj.promo ? '🏷️ ' : ''}${escapeHtml(nom)}</span>
     <button class="btn-prix" data-action="ouvrirModifPrix" data-args="${attrArgs([cat, nom])}">${obj.prix.toFixed(2)} €</button>
     <button class="btn-tva" data-action="cyclerTvaUi" data-args="${attrArgs([cat, nom])}" title="Toucher pour changer le taux">${obj.tva}%</button>
     <button class="btn-tva" style="${obj.promo ? 'background:#F57F17;color:white;border-color:#F57F17' : ''}" data-action="basculerPromoUi" data-args="${attrArgs([cat, nom])}" title="Marquer/démarquer comme promotion">🏷️</button>
+      <button class="btn-tva" style="${obj.favori ? 'background:#F9A825;color:#000;border-color:#F9A825' : ''}" data-action="basculerFavoriUi" data-args="${attrArgs([cat, nom])}" title="Marquer/démarquer comme favori">⭐</button>
     <button class="btn-edit" data-action="ouvrirRenommer" data-args="${attrArgs([cat, nom])}">✏️</button>
     <button class="btn-del" data-action="demanderSuppressionArticle" data-args="${attrArgs([cat, nom])}">🗑</button>
   </div>`;
@@ -104,6 +109,11 @@ function cyclerTvaUi(cat, nom) {
 
 function basculerPromoUi(cat, nom) {
   basculerPromo(cat, nom);
+  ouvrirGestionPrix();
+}
+
+function basculerFavoriUi(cat, nom) {
+  basculerFavori(cat, nom);
   ouvrirGestionPrix();
 }
 
@@ -248,6 +258,10 @@ function popupAjoutArticle() {
       <input type="checkbox" id="chk-ajout-promo" style="width:20px;height:20px">
       🏷️ Cet article est en promotion
     </label>
+    <label style="display:flex;align-items:center;gap:8px;color:white;font-size:14px;margin-bottom:10px;cursor:pointer">
+      <input type="checkbox" id="chk-ajout-favori" style="width:20px;height:20px">
+      ⭐ Cet article est un favori
+    </label>
     <div id="zone-saisie" style="display:flex;gap:8px"></div>
     <div class="modal-actions" style="margin-top:10px">
       <button class="btn-modal rouge" id="btn-retour-ajout">⬅ Retour</button>
@@ -283,9 +297,10 @@ function popupAjoutArticle() {
     const nom = nomSaisi.trim();
     const prix = parseFloat(prixSaisi);
     const promo = conteneur.querySelector('#chk-ajout-promo').checked;
+    const favori = conteneur.querySelector('#chk-ajout-favori').checked;
     const sansPrix = cat === 'Plats-types-fixes'; // le prix est porté par chaque choix
     if (!cat || !nom || (!sansPrix && isNaN(prix))) return;
-    ajouterArticleCatalogue(cat, nom, sansPrix ? 0 : prix, tva, promo);
+    ajouterArticleCatalogue(cat, nom, sansPrix ? 0 : prix, tva, promo, favori);
     ouvrirGestionPrix();
   });
 

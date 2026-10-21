@@ -26,22 +26,25 @@ function mettreAJourPastille({ configure, enAttente }) {
   if (!pastille) {
     pastille = document.createElement('div');
     pastille.id = 'pastille-sync';
-    pastille.style.cssText = 'position:fixed;top:6px;right:6px;font-size:10px;padding:3px 7px;border-radius:10px;z-index:150;color:white;pointer-events:none;';
+    pastille.style.cssText = 'position:fixed;top:4px;right:4px;font-size:11px;line-height:1;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:50%;z-index:150;color:white;pointer-events:none;';
     document.body.appendChild(pastille);
   }
   if (!configure) {
     pastille.style.background = '#B71C1C';
-    pastille.style.display = 'block';
-    pastille.textContent = '⚠️ GitHub non configuré';
+    pastille.style.display = 'flex';
+    pastille.textContent = '⚠️';
+    pastille.title = 'GitHub non configuré';
     return;
   }
-  pastille.style.display = 'block';
+  pastille.style.display = 'flex';
   if (enAttente > 0) {
     pastille.style.background = '#E65100';
-    pastille.textContent = `⏳ ${enAttente} en attente`;
+    pastille.textContent = '⏳';
+    pastille.title = `${enAttente} en attente d'envoi`;
   } else {
     pastille.style.background = '#2E7D32';
-    pastille.textContent = '✅ GitHub à jour';
+    pastille.textContent = '✓';
+    pastille.title = 'GitHub à jour';
   }
 }
 

@@ -18,13 +18,14 @@ import { getConfigGithub, obtenirClotureDistante, listerFichiersDistants } from 
 import { modal, fermerModal, escapeHtml, enregistrerAction, attrArgs } from './ui-modal.js';
 import { telechargerFichier, ecrireFichierDossier } from './export.js';
 import { demanderCode } from './garde-code.js';
+import { libelleMode } from './consommation.js';
 import { imprimerTexte, dateHeureCourante } from './impression.js';
 
 export function initUiHistorique() {
   document.getElementById('btn-historique').addEventListener('click', () => afficherHistorique());
+  // Le bon code suffit : pas de confirmation supplémentaire.
   document.getElementById('btn-cloture').addEventListener('click',
-    () => demanderCode('Code pour clôturer', demanderConfirmationCloture));
-  enregistrerAction('lancerCloture', declencherCloture);
+    () => demanderCode('Code pour clôturer', declencherCloture));
   enregistrerAction('voirTicket', voirTicket);
   enregistrerAction('imprimerTicket', imprimerCopieTicket);
   enregistrerAction('exporterCopieTicket', exporterCopieTicket);
@@ -66,7 +67,7 @@ export async function afficherHistorique(date = dateComptable()) {
     // du plus récent au plus ancien : une copie demandée par un client
     // concerne presque toujours un des derniers tickets
     liste = [...ventes].reverse().map(v => {
-      const mode = v.modeConsommation === 'SUR_PLACE' ? 'SUR PLACE' : (v.modeConsommation === 'EMPORTER' ? 'EMPORTER' : '');
+      const mode = v.modeConsommation ? libelleMode(v.modeConsommation) : '';
       return `<button class="ticket-ligne" data-action="voirTicket" data-args="${attrArgs([v.numero, date])}">`
         + `N° ${escapeHtml(v.numero)} · ${escapeHtml(v.heureAffichee)} · ${v.totalTTC.toFixed(2)} € · ${escapeHtml(v.modePaiement)}${mode ? ' · ' + mode : ''}`
         + `</button>`;
@@ -137,33 +138,31 @@ export async function ouvrirListeJoursVentes() {
   modal(h);
 }
 
-// Après le code : confirmation, en rappelant qu'il n'existe qu'une
-// clôture par journée comptable (une nouvelle clôture la remplace).
-function demanderConfirmationCloture() {
-  const date = dateComptable();
-  const existe = !!getCloture(date);
-  modal(`<h2>Clôturer la journée du ${date} ?</h2>
-    <p class="confirm-txt">${existe
-      ? "Une clôture existe déjà pour cette journée : elle sera mise à jour (une seule clôture par journée comptable)."
-      : "La clôture récapitule toutes les ventes de la journée comptable (de toutes les caisses)."}
-      <br>Elle sera de toute façon recalculée automatiquement une fois la journée terminée (6 h).</p>
-    <div class="modal-actions">
-      <button class="btn-modal rouge" data-action="fermerModal">NON</button>
-      <button class="btn-modal vert" data-action="lancerCloture">OUI, CLÔTURER</button>
-    </div>`);
+// En-tête de la fenêtre de clôture : à gauche du titre, un bouton (icône de
+// caisse enregistreuse) ouvre la "Clôture de caisse" (comptage du tiroir).
+const ICONE_CAISSE = `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <rect x="7" y="3" width="10" height="5" rx="1"/><path d="M5 8h14l2 7H3z"/><rect x="3" y="15" width="18" height="6" rx="1"/>
+  <path d="M7 11.5h.01M10.5 11.5h.01M14 11.5h.01M17 11.5h.01M8 18h8"/></svg>`;
+
+function enteteCloture(titre) {
+  return `<div class="cloture-entete">
+    <button class="btn-icone" data-action="ouvrirCaisse" title="Clôture de caisse (comptage)" aria-label="Clôture de caisse">${ICONE_CAISSE}</button>
+    <h2>${escapeHtml(titre)}</h2>
+    <span class="cloture-entete-vide"></span>
+  </div>`;
 }
 
 async function declencherCloture() {
   afficherChargement('Clôture en cours');
   const c = await cloturerEtSauvegarder();
   if (!c) {
-    modal(`<h2>Clôture</h2>
+    modal(`${enteteCloture('Clôture')}
       <p class="confirm-txt">Aucune vente pour cette journée.</p>
       <button class="btn-modal rouge full" data-action="fermerModal">FERMER</button>`);
     return;
   }
   ecrireFichierDossier(`cloture_${c.date}.txt`, c.texte);
-  modal(`<h2>CLÔTURE JOURNÉE</h2>
+  modal(`${enteteCloture('CLÔTURE JOURNÉE')}
     <div style="color:#aaa;text-align:center;margin-bottom:8px">${c.date}</div>
     <div class="cloture-texte">${escapeHtml(c.texte)}</div>
     <div class="modal-actions">
