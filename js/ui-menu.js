@@ -15,6 +15,9 @@
  * "favoris" une étoile ⭐ sur leur bouton — purement visuel (ils restent
  * à leur place dans l'ordre alphabétique, voir tri.js).
  *
+ * Les articles `special: 'prix-libre'` (ex. "Salade Divers") ouvrent une
+ * pop-up pour encoder leur prix à chaque vente.
+ *
  * La catégorie "Divers" peut contenir un article spécial "Ristourne"
  * (repéré par `special: 'ristourne'`) : il ouvre une pop-up dédiée pour
  * saisir un montant et un taux de TVA, et ajoute une ligne négative.
@@ -24,6 +27,8 @@ import { ajouterArticle, supprimerArticle, getPanier, getTotal, onChangement } f
 import { getMode, onModeChange, tvaEffective } from './consommation.js';
 import { enregistrerAction, escapeHtml } from './ui-modal.js';
 import { ouvrirRistournePopup } from './ui-ristourne.js';
+import { ouvrirPrixLibrePopup } from './ui-prix-libre.js';
+import { libellesSupplements } from './ticket.js';
 import { trierEntrees } from './tri.js';
 
 const elMenu = () => document.getElementById('zone-menu');
@@ -90,7 +95,10 @@ function afficherArticles(categorie) {
     trierEntrees(Object.entries(catalogue.categories[categorie]), categorie).forEach(([nom, obj]) => {
       const btn = document.createElement('button');
       btn.className = 'btn-menu';
-      if (obj.special === 'ristourne') {
+      if (obj.special === 'prix-libre') {
+        btn.innerHTML = `${badge(obj)}${escapeHtml(nom)}<br><span style="color:var(--accent);font-size:0.8em">Prix à saisir</span>`;
+        btn.addEventListener('click', () => ouvrirPrixLibrePopup(nom, obj.tva));
+      } else if (obj.special === 'ristourne') {
         btn.innerHTML = `${badge(obj)}${escapeHtml(nom)}<br><span style="color:var(--accent);font-size:0.8em">Montant variable</span>`;
         btn.addEventListener('click', () => ouvrirRistournePopup());
       } else {
@@ -152,26 +160,48 @@ function afficherOptions(typePlat, choix, base) {
 
   function recalc() {
     let extra = 0;
-    Object.entries(selection).forEach(([n, v]) => { if (v) extra += catalogue.supplements[n].prix; });
+    Object.entries(selection).forEach(([n, nb]) => { if (nb) extra += catalogue.supplements[n].prix * nb; });
     totalVar = arrondi(base.prix + extra);
     label.textContent = 'TOTAL : ' + totalVar.toFixed(2) + ' €';
   }
 
-  // Certains suppléments ne s'appliquent qu'à certains formats
-  // (champ `formats`, ex. "Frites + Sauces" pour Pain rond/Poche/Durum).
+  // Ordre : voir tri.js (Salade, Tomates, Oignon, puis alphabétique, puis
+  // les suppléments cumulables comme "Suppléments Divers" en dernier).
+  // Certains suppléments ne s'appliquent qu'à certains formats (champ
+  // `formats`). `selection[nom]` = nombre de fois choisi : 0/1 pour un
+  // supplément ordinaire, plusieurs clics possibles pour un `multiple`.
   trierEntrees(Object.entries(catalogue.supplements), 'SUPPLEMENTS')
     .filter(([, obj]) => !obj.formats || obj.formats.includes(typePlat))
     .forEach(([nom, obj]) => {
       const btn = document.createElement('button');
       btn.className = 'btn-menu';
-      btn.innerHTML = `${badge(obj)}${escapeHtml(nom)}<br>${prixHtml(obj.prix)}`;
       ordreAffichage.push(nom);
-      btn.addEventListener('click', () => {
-        selection[nom] = !selection[nom];
-        btn.style.outline = selection[nom] ? '3px solid var(--accent)' : '';
-        recalc();
-      });
-      menu.appendChild(btn);
+      selection[nom] = 0;
+
+      const afficher = () => {
+        const n = selection[nom];
+        btn.innerHTML = `${badge(obj)}${escapeHtml(nom)}${obj.multiple && n ? ` <b>× ${n}</b>` : ''}<br>${prixHtml(obj.prix)}`;
+        btn.style.outline = n ? '3px solid var(--accent)' : '';
+      };
+      afficher();
+
+      if (obj.multiple) {
+        // cumulable : chaque clic en ajoute un (comme une boisson) ; −1 en retire un
+        const rangee = document.createElement('div');
+        rangee.style.cssText = 'grid-column:1/-1;display:flex;gap:4px';
+        btn.style.flex = '1';
+        btn.addEventListener('click', () => { selection[nom]++; afficher(); recalc(); });
+        const moins = document.createElement('button');
+        moins.className = 'btn-menu orange';
+        moins.textContent = '−1';
+        moins.style.cssText = 'flex:0 0 64px';
+        moins.addEventListener('click', () => { if (selection[nom] > 0) selection[nom]--; afficher(); recalc(); });
+        rangee.append(btn, moins);
+        menu.appendChild(rangee);
+      } else {
+        btn.addEventListener('click', () => { selection[nom] = selection[nom] ? 0 : 1; afficher(); recalc(); });
+        menu.appendChild(btn);
+      }
     });
 
   footer.style.display = 'grid';
@@ -189,7 +219,8 @@ function afficherOptions(typePlat, choix, base) {
   btnValider.className = 'btn-menu vert';
   btnValider.textContent = '✅ Valider';
   btnValider.addEventListener('click', () => {
-    const choisis = ordreAffichage.filter(n => selection[n]); // dans l'ordre d'affichage
+    // dans l'ordre d'affichage ; un supplément cumulable est répété autant de fois que choisi
+    const choisis = ordreAffichage.flatMap(n => Array(selection[n] || 0).fill(n));
     ajouterArticle(`${typePlat} ${choix}`, totalVar, base.tva, choisis);
     afficherCategories();
   });
@@ -217,7 +248,7 @@ function rafraichirPanier({ total, panier }) {
       const ligne = document.createElement('div');
       ligne.className = 'panier-ligne';
       const libelle = (item.quantite > 1 ? item.quantite + ' x ' : '') + item.nom;
-      const details = (item.supplements || [])
+      const details = libellesSupplements(item.supplements)
         .map(s => `<div class="panier-sup">+ ${escapeHtml(s)}</div>`).join('');
       ligne.innerHTML = `
         <span class="panier-nom">${escapeHtml(libelle)}${details}</span>

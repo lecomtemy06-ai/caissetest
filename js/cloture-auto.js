@@ -16,7 +16,8 @@
  * qu'il est configuré, on ne crée rien de nouveau (on ne peut pas
  * vérifier si la clôture existe déjà) : on réessaiera plus tard.
  */
-import { dateComptable, datesConnuesLocalement, ventesDuJourFusionnees } from './ventes.js';
+import { datesConnuesLocalement, ventesDuJourFusionnees } from './ventes.js';
+import { dateComptable, dateLocale } from './date-comptable.js';
 import { calculerCloture, cloturerEtSauvegarder, getCloture } from './cloture.js';
 import { getConfigGithub, listerFichiersDistants, obtenirClotureDistante } from './github-sync.js';
 
@@ -27,7 +28,7 @@ let derniereJournee = null;
 function dateLimite() {
   const d = new Date();
   d.setDate(d.getDate() - FENETRE_JOURS);
-  return d.toISOString().split('T')[0];
+  return dateLocale(d);
 }
 
 function memeContenu(a, b) {

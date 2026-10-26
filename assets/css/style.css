@@ -192,3 +192,8 @@ html, body { height: 100%; background: var(--bg); color: var(--fg); font-family:
 
 /* ===== Suppléments sous la ligne d'un article (panier) ===== */
 .panier-sup { font-size: 10px; color: #B0BEC5; padding-left: 14px; line-height: 1.3; font-weight: normal; }
+
+/* ===== Gestion Article : onglets de rubriques ===== */
+.gestion-onglets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.gestion-onglets .onglet { background: #37474F; color: #CFD8DC; border: 2px solid transparent; border-radius: 8px; padding: 9px 12px; font-size: 13px; font-weight: bold; cursor: pointer; }
+.gestion-onglets .onglet.actif { background: var(--blue); color: white; border-color: #90CAF9; }

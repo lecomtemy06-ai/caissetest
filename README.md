@@ -244,6 +244,14 @@ Dans les deux cas, la page des suppléments est toujours proposée ensuite.
 Un supplément peut être limité à certains formats (champ `formats`) ;
 si tu renommes un format, mets ce champ à jour dans le catalogue.
 
+## Journée comptable, Salades et suppléments
+
+- **Journée comptable** : elle va de 06:00 à 05:59 le lendemain. Un ticket émis le 23/10 à 00:30 appartient à la journée du **22/10**. Le calcul (`js/date-comptable.js`) utilise l'heure locale de la tablette, jamais l'heure UTC.
+- **Gestion** (logo, puis code) : le menu propose *Gestion Article* (produits rangés par onglets : Plats, Viandes, chaque rubrique, Suppléments), *Ajouter article*, *Clôtures*, *Clôtures de caisse*, *Export & sauvegarde* et *Paramètres*.
+- **Salades** : « Salade César » (9,00 € TTC, TVA 6 %) et « Salade Divers » (`special: "prix-libre"`), qui ouvre un pavé pour saisir le prix TTC de la salade sur mesure. La TVA de cet article se règle dans *Gestion Article*.
+- **Suppléments** : Salade, Tomates, Oignon (champ `ordre` 1, 2, 3, à 0 €) puis les suivants par ordre alphabétique, « Suppléments Divers » en dernier. Un supplément avec `"multiple": true` se clique plusieurs fois (bouton −1 pour en retirer un) et s'imprime « 2 x Suppléments Divers ».
+- Le catalogue privé a priorité tant que `version` est identique : après une mise à jour du catalogue de l'application, remplacer `catalogue.json` dans le dépôt privé.
+
 ## Plein écran
 
 Un bouton unique dans la barre du haut : ⛶ passe en plein écran, ✕ en sort.

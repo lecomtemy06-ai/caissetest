@@ -11,7 +11,7 @@
  * interceptés. Les données métier (ventes, catalogue) ne passent pas
  * par ici : elles sont gérées par l'application (localStorage + GitHub).
  */
-const CACHE_NOM = 'caisse-friterie-v8'; // à incrémenter si la LISTE des fichiers ci-dessous change
+const CACHE_NOM = 'caisse-friterie-v9'; // à incrémenter si la LISTE des fichiers ci-dessous change
 const DELAI_RESEAU_MS = 4000;
 
 const FICHIERS_A_METTRE_EN_CACHE = [
@@ -40,6 +40,7 @@ const FICHIERS_A_METTRE_EN_CACHE = [
   './js/cloture-auto.js',
   './js/impression.js',
   './js/tri.js',
+  './js/date-comptable.js',
   './js/format.js',
   './js/caisse.js',
   './js/ui-caisse.js',
@@ -50,6 +51,7 @@ const FICHIERS_A_METTRE_EN_CACHE = [
   './js/ui-paiement.js',
   './js/ui-historique.js',
   './js/ui-export.js',
+  './js/ui-prix-libre.js',
   './js/ui-gestion.js',
   './js/ui-parametres.js',
   './assets/icons/icon-192.png',

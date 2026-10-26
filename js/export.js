@@ -10,6 +10,7 @@ import { toutesLesVentes, ventesDuJour, dateComptable } from './ventes.js';
 import { getCatalogue } from './catalogue.js';
 import { listerClotures, rassemblerClotures } from './cloture.js';
 import { nombreFr } from './format.js';
+import { libellesSupplements } from './ticket.js';
 
 export function telechargerFichier(nom, contenu, mime = 'text/plain') {
   const blob = new Blob([contenu], { type: mime + ';charset=utf-8' });
@@ -34,7 +35,7 @@ function construireCsvVentes(ventes) {
     v.lignes.forEach(l => {
       lignes.push([
         v.numero, v.dateComptable, v.dateAffichee + ' ' + v.heureAffichee, v.appareil || '', v.modeConsommation || '',
-        csvEchappe(l.nom), csvEchappe((l.supplements || []).join(' + ')), l.quantite, nombreFr(l.prixUnitaire), l.tva,
+        csvEchappe(l.nom), csvEchappe(libellesSupplements(l.supplements).join(' + ')), l.quantite, nombreFr(l.prixUnitaire), l.tva,
         nombreFr(l.prixUnitaire * l.quantite), v.modePaiement, nombreFr(v.totalTTC)
       ].join(';'));
     });

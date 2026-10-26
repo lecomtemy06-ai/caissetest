@@ -211,6 +211,18 @@
         "tva": 6
       }
     },
+    "Salades": {
+      "Salade César": {
+        "prix": 9,
+        "tva": 6,
+        "promo": false
+      },
+      "Salade Divers": {
+        "prix": 0,
+        "tva": 6,
+        "special": "prix-libre"
+      }
+    },
     "Desserts": {
       "Chips": {
         "prix": 4,
@@ -309,51 +321,77 @@
         "prix": 0,
         "tva": 6,
         "special": "ristourne"
-      },
-      "Salade César": {
-        "prix": 9,
-        "tva": 6,
-        "promo": false
       }
     }
   },
   "supplements": {
     "Salade": {
       "prix": 0,
-      "tva": 6
+      "tva": 6,
+      "ordre": 1
     },
     "Tomates": {
       "prix": 0,
-      "tva": 6
+      "tva": 6,
+      "ordre": 2
     },
-    "Oignons": {
+    "Oignon": {
       "prix": 0,
-      "tva": 6
+      "tva": 6,
+      "ordre": 3
     },
-    "Fromagère": {
-      "prix": 1.5,
-      "tva": 6
-    },
-    "Crudités+": {
+    "Oignon Sec": {
       "prix": 0.6,
       "tva": 6
     },
-    "Frites+": {
-      "prix": 0.9,
+    "Carottes": {
+      "prix": 0.6,
       "tva": 6
     },
-    "Sauce+": {
-      "prix": 0.9,
+    "Feta": {
+      "prix": 0.6,
       "tva": 6
     },
-    "Frites + Sauces": {
-      "prix": 1.5,
+    "Mais": {
+      "prix": 0.6,
+      "tva": 6
+    },
+    "Choux": {
+      "prix": 0.6,
+      "tva": 6
+    },
+    "Choux Rouge": {
+      "prix": 0.6,
+      "tva": 6
+    },
+    "Cornichon": {
+      "prix": 0.6,
+      "tva": 6
+    },
+    "Olives": {
+      "prix": 0.6,
+      "tva": 6
+    },
+    "Cheese": {
+      "prix": 0.6,
+      "tva": 6
+    },
+    "Frites": {
+      "prix": 0.6,
+      "tva": 6
+    },
+    "Sauce": {
+      "prix": 0.6,
+      "tva": 6
+    },
+    "Jalapenos": {
+      "prix": 0.6,
+      "tva": 6
+    },
+    "Suppléments Divers": {
+      "prix": 0.6,
       "tva": 6,
-      "formats": [
-        "Pain rond",
-        "Poche",
-        "Durum"
-      ]
+      "multiple": true
     }
   }
 }

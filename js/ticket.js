@@ -25,6 +25,14 @@ export function calculerVentilationTVA(lignes) {
   return parTaux;
 }
 
+// Libellés des suppléments d'une ligne, un par ligne de ticket. Un
+// supplément cumulable choisi plusieurs fois est regroupé : "2 x Suppléments Divers".
+export function libellesSupplements(supplements) {
+  const comptes = new Map();
+  (supplements || []).forEach(s => comptes.set(s, (comptes.get(s) || 0) + 1));
+  return [...comptes.entries()].map(([nom, n]) => (n > 1 ? `${n} x ${nom}` : nom));
+}
+
 function centrer(txt, largeur) {
   txt = String(txt);
   if (txt.length >= largeur) return txt.slice(0, largeur);
@@ -103,7 +111,7 @@ export function formaterTicketTexte(t, options = {}) {
     const tot = (l.prixUnitaire * l.quantite).toFixed(2);
     L.push(ligneColonnes(l.quantite, l.nom, l.prixUnitaire.toFixed(2), l.tva + '%', tot));
     // un supplément par ligne, en retrait (leur prix est inclus dans la ligne)
-    (l.supplements || []).forEach(s => L.push(('    + ' + s).slice(0, LARGEUR_TICKET)));
+    libellesSupplements(l.supplements).forEach(s => L.push(('    + ' + s).slice(0, LARGEUR_TICKET)));
   });
   L.push(sep2);
   Object.keys(t.ventilation).sort((a, b) => a - b).forEach(taux => {

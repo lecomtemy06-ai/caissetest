@@ -14,14 +14,11 @@ import { creerTicket } from './ticket.js';
 import { fileAttendreSynchro, obtenirVentesDistantes } from './github-sync.js';
 import { obtenirProchainNumero } from './numerotation.js';
 import { tvaEffective } from './consommation.js';
+import { dateComptable } from './date-comptable.js';
 
-// Une journée commerciale se termine à 6h du matin : une vente faite
-// à 1h du matin est comptabilisée sur la journée de la veille.
-export function dateComptable() {
-  const now = new Date();
-  if (now.getHours() < 6) now.setDate(now.getDate() - 1);
-  return now.toISOString().split('T')[0];
-}
+// Journée comptable (voir date-comptable.js) : une vente faite à 1 h du matin
+// est comptabilisée sur la journée de la veille.
+export { dateComptable };
 
 // `modeConsommation` ("EMPORTER" / "SUR_PLACE") détermine le taux de TVA
 // réellement appliqué : les lignes du panier portent le taux du
