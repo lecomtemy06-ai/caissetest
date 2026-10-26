@@ -40,6 +40,7 @@ export function ouvrirGestionPrix() {
       <button class="btn-modal gris" data-action="ouvrirListeCaisses">🧮 Clôtures de caisse</button>
       <button class="btn-modal gris" data-action="ouvrirExport">💾 Export &amp; sauvegarde</button>
       <button class="btn-modal gris" data-action="ouvrirParametres">⚙️ Paramètres</button>
+      <button class="btn-modal orange" style="grid-column:1/-1" data-action="ouvrirPurge">🧹 Purger le cache</button>
     </div>
     <button class="btn-modal rouge full" data-action="fermerModal">✕ Fermer</button>`);
 }

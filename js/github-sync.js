@@ -106,7 +106,12 @@ export async function testerConnexionGithub(config) {
 // ===== File d'attente (écriture) =====
 export function fileAttendreSynchro(item) {
   const file = Stockage.chargerFileSync();
-  file.push({ id: Date.now() + '-' + Math.random().toString(36).slice(2), tentatives: 0, ...item });
+  const nouveau = { id: Date.now() + '-' + Math.random().toString(36).slice(2), tentatives: 0, ...item };
+  // L'instantané complet du catalogue (`amorce`) ne sert qu'au tout premier
+  // envoi : un seul exemplaire dans la file suffit (sinon chaque modification
+  // hors-ligne en embarquerait une copie et saturerait la mémoire locale).
+  if (nouveau.type === 'catalogue' && file.some(x => x.type === 'catalogue')) delete nouveau.amorce;
+  file.push(nouveau);
   Stockage.sauvegarderFileSync(file);
   notifierStatut();
   traiterFile();
@@ -121,20 +126,26 @@ export async function traiterFile() {
   enTraitement = true;
   notifierStatut();
 
+  // IMPORTANT : la file est relue depuis le stockage à chaque tour. Une vente
+  // peut être ajoutée PENDANT qu'un envoi est en cours ; réécrire une copie
+  // lue au départ effacerait cette vente de la file (elle ne partirait
+  // jamais sur le dépôt privé). On ne retire donc que l'élément envoyé.
   let file = Stockage.chargerFileSync();
   while (file.length) {
     const item = file[0];
     try {
       await traiterUnElement(config, item);
-      file.shift();
-      Stockage.sauvegarderFileSync(file);
+      Stockage.sauvegarderFileSync(Stockage.chargerFileSync().filter(x => x.id !== item.id));
       notifierStatut();
     } catch (e) {
-      item.tentatives = (item.tentatives || 0) + 1;
-      Stockage.sauvegarderFileSync(file);
+      const courante = Stockage.chargerFileSync();
+      const dedans = courante.find(x => x.id === item.id);
+      if (dedans) dedans.tentatives = (dedans.tentatives || 0) + 1;
+      Stockage.sauvegarderFileSync(courante);
       console.warn('Synchronisation GitHub différée :', e.message || e);
       break; // on réessaiera au prochain déclenchement
     }
+    file = Stockage.chargerFileSync();
   }
 
   enTraitement = false;

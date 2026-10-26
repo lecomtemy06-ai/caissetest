@@ -11,6 +11,7 @@ import { getCatalogue } from './catalogue.js';
 import { listerClotures, rassemblerClotures } from './cloture.js';
 import { nombreFr } from './format.js';
 import { libellesSupplements } from './ticket.js';
+import { listerFichiersDistants, obtenirVentesDistantes } from './github-sync.js';
 
 export function telechargerFichier(nom, contenu, mime = 'text/plain') {
   const blob = new Blob([contenu], { type: mime + ';charset=utf-8' });
@@ -43,12 +44,48 @@ function construireCsvVentes(ventes) {
   return '\ufeff' + lignes.join('\r\n');
 }
 
-export function exporterVentesCSV(toutes) {
+// Rassemble les ventes de CET appareil et du dépôt privé, sans doublon
+// (un ticket = un numéro). `toutes` = false : journée comptable en cours
+// seulement. Les données locales ne sont pas modifiées.
+// Renvoie { ventes, distantInjoignable, partiel }.
+export async function rassemblerVentes(toutes) {
   const date = dateComptable();
-  const ventes = toutes ? toutesLesVentes() : ventesDuJour(date);
-  if (!ventes.length) return false;
-  telechargerFichier(toutes ? `ventes_completes_${date}.csv` : `ventes_${date}.csv`, construireCsvVentes(ventes), 'text/csv');
-  return true;
+  const parNumero = new Map();
+  (toutes ? toutesLesVentes() : ventesDuJour(date)).forEach(t => parNumero.set(t.numero, t));
+
+  let distantInjoignable = false;
+  let partiel = false;
+  const retenir = (liste) => liste.forEach(t => parNumero.set(t.numero, t));
+
+  if (toutes) {
+    const dates = await listerFichiersDistants('ventes');
+    if (dates === null) distantInjoignable = true;
+    else {
+      const file = [...dates];
+      const travailleur = async () => {
+        while (file.length) {
+          const liste = await obtenirVentesDistantes(file.shift());
+          if (liste === null) partiel = true; else retenir(liste);
+        }
+      };
+      await Promise.all([travailleur(), travailleur(), travailleur(), travailleur()]);
+    }
+  } else {
+    const liste = await obtenirVentesDistantes(date);
+    if (liste === null) distantInjoignable = true; else retenir(liste);
+  }
+
+  const ventes = [...parNumero.values()].sort((a, b) => String(a.horodatage).localeCompare(String(b.horodatage)));
+  return { ventes, distantInjoignable, partiel };
+}
+
+export async function exporterVentesCSV(toutes) {
+  const date = dateComptable();
+  const r = await rassemblerVentes(toutes);
+  if (r.ventes.length) {
+    telechargerFichier(toutes ? `ventes_completes_${date}.csv` : `ventes_${date}.csv`, construireCsvVentes(r.ventes), 'text/csv');
+  }
+  return { nombre: r.ventes.length, distantInjoignable: r.distantInjoignable, partiel: r.partiel };
 }
 
 // ===== Export comptable des clôtures =====

@@ -39,6 +39,28 @@ export const Stockage = {
   sauvegarderCatalogue: (c) => ecrire(CLES_STOCKAGE.CATALOGUE, c),
 
   chargerVentes: () => lire(CLES_STOCKAGE.VENTES, []),
+  // Ajoute UN ticket en bout de liste sans relire ni re-sérialiser tout
+  // l'historique (coût constant, même avec des milliers de tickets : utile
+  // sur une tablette peu puissante). Renvoie false si le stockage est plein.
+  ajouterVente: (ticket) => {
+    try {
+      const brut = localStorage.getItem(CLES_STOCKAGE.VENTES);
+      const item = JSON.stringify(ticket);
+      let nouveau;
+      if (!brut || brut === '[]') nouveau = '[' + item + ']';
+      else if (brut.endsWith(']')) nouveau = brut.slice(0, -1) + ',' + item + ']';
+      else { // contenu inattendu : repli sûr sur la méthode complète
+        const liste = lire(CLES_STOCKAGE.VENTES, []);
+        liste.push(ticket);
+        return ecrire(CLES_STOCKAGE.VENTES, liste);
+      }
+      localStorage.setItem(CLES_STOCKAGE.VENTES, nouveau);
+      return true;
+    } catch (e) {
+      console.warn('Écriture locale du ticket échouée (stockage plein ?)', e);
+      return false;
+    }
+  },
   sauvegarderVentes: (v) => ecrire(CLES_STOCKAGE.VENTES, v),
 
   chargerCaisses: () => lire(CLES_STOCKAGE.CAISSES, {}),

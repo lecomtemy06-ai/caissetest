@@ -11,6 +11,8 @@ import {
   initDossierExport, reactiverDossier
 } from './export.js';
 import { toutesLesVentes } from './ventes.js';
+import { Stockage } from './stockage.js';
+import { purgerCacheLocal } from './purge.js';
 import { formaterTicketTexte } from './ticket.js';
 
 let importEnAttente = null;
@@ -19,8 +21,10 @@ export function initUiExport() {
   enregistrerAction('ouvrirExport', ouvrirExport);
   document.getElementById('import-json').addEventListener('change', gererImport);
 
-  enregistrerAction('exportCsvJour', () => { if (!exporterVentesCSV(false)) alert('Aucune vente à exporter.'); });
-  enregistrerAction('exportCsvTout', () => { if (!exporterVentesCSV(true)) alert('Aucune vente à exporter.'); });
+  enregistrerAction('exportCsvJour', () => exporterLesVentes(false));
+  enregistrerAction('exportCsvTout', () => exporterLesVentes(true));
+  enregistrerAction('ouvrirPurge', ouvrirPurge);
+  enregistrerAction('confirmerPurge', confirmerPurge);
   enregistrerAction('exportJson', exporterSauvegardeJSON);
   enregistrerAction('exportCloturesCsv', exporterToutesLesClotures);
   enregistrerAction('choisirDossier', gererChoixDossier);
@@ -52,17 +56,52 @@ export function ouvrirExport() {
     <button class="btn-modal rouge full" style="margin-top:12px" data-action="ouvrirGestionPrix">⬅ Retour</button>`);
 }
 
+// Écran de résultat commun aux exports CSV (ventes et clôtures).
+function afficherResultatExport(titre, r, singulier, pluriel, vide) {
+  let detail = '';
+  if (r.distantInjoignable) {
+    detail = `<br>⚠️ Dépôt privé injoignable ou non configuré : seules les ${pluriel} de CET appareil sont incluses.`;
+  } else if (r.partiel) {
+    detail = '<br>⚠️ Certains fichiers du dépôt privé n\'ont pas pu être lus : l\'export peut être incomplet.';
+  }
+  const accord = r.nombre > 1 ? pluriel : singulier;
+  modal(`<h2>${titre}</h2>
+    <p class="confirm-txt">${r.nombre ? `${r.nombre} ${accord} exportée${r.nombre > 1 ? 's' : ''} (sans doublon).` : vide}${detail}</p>
+    <button class="btn-modal rouge full" data-action="fermerModal">Fermer</button>`);
+}
+
+async function exporterLesVentes(toutes) {
+  const titre = toutes ? 'Export des ventes' : 'Export des ventes du jour';
+  modal(`<h2>${titre}</h2><p class="confirm-txt">Rassemblement des ventes (cet appareil + dépôt privé)...</p>`);
+  const r = await exporterVentesCSV(toutes);
+  afficherResultatExport(titre, r, 'vente', 'ventes', 'Aucune vente à exporter.');
+}
+
 async function exporterToutesLesClotures() {
   modal('<h2>Export des clôtures</h2><p class="confirm-txt">Rassemblement des clôtures (cet appareil + dépôt privé)...</p>');
   const r = await exporterCloturesCSV();
-  const detail = r.distantInjoignable
-    ? '<br>⚠️ Dépôt privé injoignable ou non configuré : seules les clôtures de CET appareil sont incluses.'
+  afficherResultatExport('Export des clôtures', r, 'clôture', 'clôtures', 'Aucune clôture à exporter.');
+}
+
+// ===== Purge du cache local =====
+function ouvrirPurge() {
+  const enAttente = Stockage.chargerFileSync().length;
+  const alerte = enAttente
+    ? `<p class="error-txt" style="font-weight:bold">⚠️ ${enAttente} élément${enAttente > 1 ? 's' : ''} pas encore envoyé${enAttente > 1 ? 's' : ''} au dépôt privé ser${enAttente > 1 ? 'ont' : 'a'} PERDU${enAttente > 1 ? 'S' : ''}. Vérifiez la pastille de synchronisation (✓) avant de purger.</p>`
     : '';
-  modal(`<h2>Export des clôtures</h2>
-    <p class="confirm-txt">${r.nombre
-      ? `${r.nombre} clôture${r.nombre > 1 ? 's' : ''} exportée${r.nombre > 1 ? 's' : ''} (une ligne par journée comptable, sans doublon).`
-      : 'Aucune clôture à exporter.'}${detail}</p>
-    <button class="btn-modal rouge full" data-action="fermerModal">Fermer</button>`);
+  modal(`<h2>Purger le cache</h2>
+    <p class="confirm-txt">Efface tout ce qui est enregistré sur CET appareil : ventes, clôtures, comptages, catalogue local, jeton GitHub et fichiers de l'application. Le dépôt privé n'est pas touché. L'application se rechargera ; il faudra ressaisir le jeton dans Paramètres.</p>
+    ${alerte}
+    <div class="modal-actions">
+      <button class="btn-modal vert" data-action="ouvrirGestionPrix">NON</button>
+      <button class="btn-modal rouge" data-action="confirmerPurge">OUI, PURGER</button>
+    </div>`);
+}
+
+async function confirmerPurge() {
+  modal('<h2>Purge en cours…</h2>');
+  await purgerCacheLocal();
+  location.replace(location.pathname);
 }
 
 async function gererChoixDossier() {

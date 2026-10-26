@@ -16,6 +16,7 @@ import { traiterFile } from './github-sync.js';
 import { initUiMode } from './ui-mode.js';
 import { initPleinEcran } from './plein-ecran.js';
 import { initClotureAuto } from './cloture-auto.js';
+import { elaguerVentesAnciennes } from './ventes.js';
 
 function initCalculatrice() {
   const calc = creerCalculatrice();
@@ -53,10 +54,15 @@ function initCalculatrice() {
 function initHorloge() {
   const elDate = document.getElementById('h-date');
   const elHeure = document.getElementById('h-heure');
+  // Formateurs créés une seule fois (évite de réallouer chaque seconde)
+  const fmtDate = new Intl.DateTimeFormat('fr-BE');
+  const fmtHeure = new Intl.DateTimeFormat('fr-BE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   function maj() {
-    const now = new Date();
-    elDate.textContent = now.toLocaleDateString('fr-BE');
-    elHeure.textContent = now.toLocaleTimeString('fr-BE');
+    if (!document.hidden) { // écran éteint / onglet masqué : on ne dessine rien
+      const now = new Date();
+      elDate.textContent = fmtDate.format(now);
+      elHeure.textContent = fmtHeure.format(now);
+    }
     setTimeout(maj, 1000);
   }
   maj();
@@ -84,6 +90,14 @@ async function demarrer() {
   initServiceWorker();
   initClotureAuto();
   traiterFile(); // tente une synchronisation immédiate si déjà configuré
+
+  // Allège la mémoire de la tablette : une fois la file d'envoi vidée, on
+  // retire la copie locale des tickets de plus de 31 jours (déjà sur le
+  // dépôt privé). Au démarrage puis à chaque changement de journée.
+  const alleger = () => setTimeout(() => { try { elaguerVentesAnciennes(31); } catch (e) { console.warn(e); } }, 20000);
+  alleger();
+  window.addEventListener('stockage-plein', () =>
+    alert("⚠️ Mémoire de la tablette pleine : la vente est enregistrée mais risque de ne pas être conservée localement. Vérifiez la synchronisation (✓) puis utilisez Gestion > Purger le cache."));
 }
 
 demarrer();

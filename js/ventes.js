@@ -11,10 +11,10 @@
  */
 import { Stockage } from './stockage.js';
 import { creerTicket } from './ticket.js';
-import { fileAttendreSynchro, obtenirVentesDistantes } from './github-sync.js';
+import { fileAttendreSynchro, obtenirVentesDistantes, getConfigGithub } from './github-sync.js';
 import { obtenirProchainNumero } from './numerotation.js';
 import { tvaEffective } from './consommation.js';
-import { dateComptable } from './date-comptable.js';
+import { dateComptable, dateLocale } from './date-comptable.js';
 
 // Journée comptable (voir date-comptable.js) : une vente faite à 1 h du matin
 // est comptabilisée sur la journée de la veille.
@@ -32,9 +32,14 @@ export async function enregistrerVente(panier, modePaiement, modeConsommation) {
   const lignes = panier.map(l => ({ ...l, tvaBase: l.tva, tva: tvaEffective(l.tva, modeConsommation) }));
   const ticket = creerTicket(numero, lignes, modePaiement, date, appareil, modeConsommation);
 
-  const ventes = Stockage.chargerVentes();
-  ventes.push(ticket);
-  Stockage.sauvegarderVentes(ventes);
+  // Écriture locale à coût constant ; si la mémoire de la tablette est
+  // pleine, on fait de la place (tickets anciens déjà envoyés au dépôt
+  // privé) puis on réessaie. Le ticket reste de toute façon dans la file
+  // de synchronisation tant qu'il n'est pas parti sur le dépôt.
+  let ecrit = Stockage.ajouterVente(ticket);
+  if (!ecrit) { elaguerVentesAnciennes(7); ecrit = Stockage.ajouterVente(ticket); }
+  if (!ecrit) { elaguerVentesAnciennes(1); ecrit = Stockage.ajouterVente(ticket); }
+  if (!ecrit) window.dispatchEvent(new CustomEvent('stockage-plein'));
 
   fileAttendreSynchro({ type: 'vente', date, ticket });
 
@@ -74,4 +79,24 @@ export async function ventesDuJourFusionnees(date = dateComptable()) {
   Stockage.sauvegarderVentes([...autresJours, ...fusion]);
 
   return fusion;
+}
+
+// Allège la mémoire de la tablette : supprime la copie LOCALE des tickets
+// de plus de `jours` journées comptables, à condition qu'ils soient déjà
+// partis sur le dépôt privé (jamais ceux encore en file d'attente) et que
+// la synchronisation soit configurée. Le dépôt privé n'est pas touché ;
+// Historique et exports vont chercher les anciennes journées sur le dépôt.
+export function elaguerVentesAnciennes(jours = 31) {
+  const config = getConfigGithub();
+  if (!(config && config.token && config.owner && config.repo)) return 0;
+  const [a, m, j] = dateComptable().split('-').map(Number);
+  const limite = dateLocale(new Date(a, m - 1, j - jours));
+  const enAttente = new Set(
+    Stockage.chargerFileSync().filter(x => x.type === 'vente' && x.ticket).map(x => x.ticket.numero)
+  );
+  const ventes = Stockage.chargerVentes();
+  const gardees = ventes.filter(t => t.dateComptable >= limite || enAttente.has(t.numero));
+  if (gardees.length === ventes.length) return 0;
+  Stockage.sauvegarderVentes(gardees);
+  return ventes.length - gardees.length;
 }

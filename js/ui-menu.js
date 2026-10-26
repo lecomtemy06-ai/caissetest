@@ -145,11 +145,15 @@ function afficherViandes(typePlat) {
 
 // Page des suppléments, toujours proposée après le choix du plat.
 // `base` = { prix, tva } du plat choisi (avant suppléments).
-function afficherOptions(typePlat, choix, base) {
+// `etat` conserve la sélection quand on part choisir une viande supplémentaire
+// puis qu'on revient : { selection: {nom: nb}, viandes: [noms…] }.
+function afficherOptions(typePlat, choix, base, etat = { selection: {}, viandes: [] }) {
   const { menu, footer } = reinitialiserEcran();
   menu.style.gridTemplateColumns = 'repeat(2, 1fr)';
   const catalogue = getCatalogue();
-  const selection = {};
+  const selection = etat.selection;
+  const viandesSupp = etat.viandes; // viandes supplémentaires (une entrée par viande ajoutée)
+  const prixViande = (n) => (catalogue.categories.Plats.viandes[n] || {}).prix || 0;
   const ordreAffichage = []; // ordre (alphabétique) des suppléments affichés
   let totalVar = base.prix;
 
@@ -161,9 +165,34 @@ function afficherOptions(typePlat, choix, base) {
   function recalc() {
     let extra = 0;
     Object.entries(selection).forEach(([n, nb]) => { if (nb) extra += catalogue.supplements[n].prix * nb; });
+    viandesSupp.forEach(n => { extra += prixViande(n); });
     totalVar = arrondi(base.prix + extra);
     label.textContent = 'TOTAL : ' + totalVar.toFixed(2) + ' €';
   }
+
+  // Viande supplémentaire (ex. double hamburger) : ouvre la liste des viandes ;
+  // chaque viande choisie s'ajoute aux suppléments, à son prix du catalogue.
+  const rangeeViande = document.createElement('div');
+  rangeeViande.style.cssText = 'grid-column:1/-1;display:flex;gap:4px';
+  const btnViande = document.createElement('button');
+  btnViande.className = 'btn-menu';
+  btnViande.style.cssText = 'flex:1;border:2px solid var(--accent)';
+  const moinsViande = document.createElement('button');
+  moinsViande.className = 'btn-menu orange';
+  moinsViande.textContent = '−1';
+  moinsViande.style.cssText = 'flex:0 0 64px';
+  const afficherViandeSupp = () => {
+    const nb = {};
+    viandesSupp.forEach(n => { nb[n] = (nb[n] || 0) + 1; });
+    const resume = Object.entries(nb).map(([n, k]) => (k > 1 ? `${k} x ${n}` : n)).join(', ');
+    btnViande.innerHTML = `🥩 Supplément viande${resume ? `<br><span style="color:var(--accent);font-size:0.85em">${escapeHtml(resume)}</span>` : ''}`;
+    moinsViande.style.display = viandesSupp.length ? '' : 'none';
+  };
+  afficherViandeSupp();
+  btnViande.addEventListener('click', () => afficherChoixViandeSupp(typePlat, choix, base, etat));
+  moinsViande.addEventListener('click', () => { viandesSupp.pop(); afficherViandeSupp(); recalc(); });
+  rangeeViande.append(btnViande, moinsViande);
+  menu.appendChild(rangeeViande);
 
   // Ordre : voir tri.js (Salade, Tomates, Oignon, puis alphabétique, puis
   // les suppléments cumulables comme "Suppléments Divers" en dernier).
@@ -176,7 +205,7 @@ function afficherOptions(typePlat, choix, base) {
       const btn = document.createElement('button');
       btn.className = 'btn-menu';
       ordreAffichage.push(nom);
-      selection[nom] = 0;
+      selection[nom] = selection[nom] || 0;
 
       const afficher = () => {
         const n = selection[nom];
@@ -204,6 +233,8 @@ function afficherOptions(typePlat, choix, base) {
       }
     });
 
+  recalc(); // total correct au retour d'un choix de viande supplémentaire
+
   footer.style.display = 'grid';
   footer.style.gridTemplateColumns = '1fr 1fr';
   footer.style.gap = '4px';
@@ -220,11 +251,36 @@ function afficherOptions(typePlat, choix, base) {
   btnValider.textContent = '✅ Valider';
   btnValider.addEventListener('click', () => {
     // dans l'ordre d'affichage ; un supplément cumulable est répété autant de fois que choisi
-    const choisis = ordreAffichage.flatMap(n => Array(selection[n] || 0).fill(n));
+    const choisis = [
+      ...viandesSupp.map(n => 'Supp. ' + n),
+      ...ordreAffichage.flatMap(n => Array(selection[n] || 0).fill(n)),
+    ];
     ajouterArticle(`${typePlat} ${choix}`, totalVar, base.tva, choisis);
     afficherCategories();
   });
   footer.appendChild(btnValider);
+}
+
+// Liste des viandes pour le supplément : un clic ajoute la viande et revient
+// à la page des suppléments (la sélection en cours est conservée).
+function afficherChoixViandeSupp(typePlat, choix, base, etat) {
+  const { menu, footer } = reinitialiserEcran();
+  const catalogue = getCatalogue();
+  const titre = document.createElement('div');
+  titre.style.cssText = 'grid-column:1/-1;color:var(--accent);font-size:18px;font-weight:bold;text-align:center;padding:6px;';
+  titre.textContent = 'Supplément viande';
+  menu.appendChild(titre);
+  trierEntrees(Object.entries(catalogue.categories.Plats.viandes), 'Plats').forEach(([nom, obj]) => {
+    const btn = document.createElement('button');
+    btn.className = 'btn-menu';
+    btn.innerHTML = `${escapeHtml(nom)}<br>+ ${prixHtml(obj.prix)}`;
+    btn.addEventListener('click', () => {
+      etat.viandes.push(nom);
+      afficherOptions(typePlat, choix, base, etat);
+    });
+    menu.appendChild(btn);
+  });
+  ajouterBoutonRetour(footer, () => afficherOptions(typePlat, choix, base, etat));
 }
 
 function ajouterBoutonRetour(footer, action) {
